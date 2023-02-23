@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>three.js webgl - buffer geometry custom attributes - particles</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link type="text/css" rel="stylesheet" href="main.css">
+</head>
+
+<body>
+    <div id="container"></div>
+    <div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> webgl - buffergeometry
+        custom attributes - particles</div>
+
+    <script type="x-shader/x-vertex" id="vertexshader">
+
+            uniform float uScale;
+
+			void main() {
+
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+
+				gl_PointSize = uScale * ( 300.0 / -mvPosition.z );
+
+				gl_Position = projectionMatrix * mvPosition;
+
+			}
+
+		</script>
+
+    <script type="x-shader/x-fragment" id="fragmentshader">
+
+			uniform sampler2D pointTexture;
+
+			varying vec3 vColor;
+
+			void main() {
+
+				gl_FragColor = texture2D( pointTexture, gl_PointCoord );
+
+			}
+
+		</script>
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported -->
+    <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+    <script type="module">
+
+        import * as THREE from 'https://cdn.skypack.dev/three';
+
+        import { TrackballControls } from "https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/TrackballControls.js";
+
+        const PARTICLE_SCALE = 3.0;
+
+        const numBananas = 2500;
+
+        let renderer, scene, camera, controls;
+
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+
+        let particleSystem, uniforms, geometry;
+
+        function init() {
+
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.z = 10;
+
+            scene = new THREE.Scene();
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            const container = document.getElementById('container');
+            container.appendChild(renderer.domElement);
+
+            uniforms = {
+
+                pointTexture: { value: new THREE.TextureLoader().load('banana.png') },
+                uScale: { value: 3.0 }
+
+            };
+
+            const shaderMaterial = new THREE.ShaderMaterial({
+
+                uniforms: uniforms,
+                vertexShader: document.getElementById('vertexshader').textContent,
+                fragmentShader: document.getElementById('fragmentshader').textContent,
+
+                depthTest: false,
+                transparent: true,
+                vertexColors: true
+
+            });
+
+            const radius = 20;
+
+            // controls
+            controls = new TrackballControls(camera, renderer.domElement);
+
+            document.body.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('resize', onWindowResize);
+
+        }
+
+        function animate() {
+
+            requestAnimationFrame(animate);
+
+            render();
+            controls.update();
+
+        }
+
+        function render() {
+
+            const time = Date.now() * 0.005;
+
+            // update the picking ray with the camera and pointer position
+            raycaster.setFromCamera(pointer, camera);
+
+            renderer.render(scene, camera);
+
+        }
+
+        function onPointerMove(event) {
+
+            if (event.isPrimary === false) return;
+
+            pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+            pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+        }
+
+        function onWindowResize() {
+
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+
+        init();
+        animate();
+    </script>
+
+</body>
+
+</html>
